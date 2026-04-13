@@ -1,0 +1,52 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+    
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+    
+    function isAdmin() {
+      return isAuthenticated() &&
+        (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' ||
+          (request.auth.token.email == "aninzechidera7@gmail.com" && request.auth.token.email_verified == true));
+    }
+
+    function isValidWahalaReport(data) {
+      return data.keys().hasAll(['userEmail', 'userComplaint', 'aiGeneratedScript', 'aiShortResponse', 'timestamp', 'userId']) &&
+             data.userEmail is string && data.userEmail.size() < 255 &&
+             data.userComplaint is string && data.userComplaint.size() < 5000 &&
+             data.aiGeneratedScript is string && data.aiGeneratedScript.size() < 10000 &&
+             data.aiShortResponse is string && data.aiShortResponse.size() < 1000 &&
+             data.timestamp is timestamp &&
+             data.userId == request.auth.uid;
+    }
+
+    // ===============================================================
+    // Rules
+    // ===============================================================
+
+    match /users/{userId} {
+      allow read: if isOwner(userId) || isAdmin();
+      allow create, update: if isOwner(userId) && request.resource.data.role == 'user';
+      allow delete: if isAdmin();
+    }
+
+    match /artifacts/{appId}/public/data/wahala_reports/{reportId} {
+      // Reports are readable by any authenticated user for advocacy purposes
+      allow read: if isAuthenticated();
+      // Only authenticated users can create reports, and they must be the owner
+      allow create: if isAuthenticated() && isValidWahalaReport(request.resource.data);
+      // Updates and deletes are restricted to admins for now
+      allow update, delete: if isAdmin();
+    }
+  }
+}

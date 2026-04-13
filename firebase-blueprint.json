@@ -1,0 +1,44 @@
+{
+  "entities": {
+    "WahalaReport": {
+      "title": "Wahala Report",
+      "description": "A report of a health system failure submitted by a user.",
+      "type": "object",
+      "properties": {
+        "userEmail": {
+          "type": "string",
+          "format": "email",
+          "description": "The email of the user who submitted the report."
+        },
+        "userComplaint": {
+          "type": "string",
+          "description": "The description of the health system failure."
+        },
+        "aiGeneratedScript": {
+          "type": "string",
+          "description": "The AI-generated comic script for the report."
+        },
+        "aiShortResponse": {
+          "type": "string",
+          "description": "The AI-generated short response for the report."
+        },
+        "timestamp": {
+          "type": "string",
+          "format": "date-time",
+          "description": "The time the report was submitted."
+        },
+        "userId": {
+          "type": "string",
+          "description": "The UID of the user who submitted the report."
+        }
+      },
+      "required": ["userEmail", "userComplaint", "aiGeneratedScript", "aiShortResponse", "timestamp", "userId"]
+    }
+  },
+  "firestore": {
+    "/artifacts/{appId}/public/data/wahala_reports": {
+      "schema": "WahalaReport",
+      "description": "Collection of health system failure reports."
+    }
+  }
+}
