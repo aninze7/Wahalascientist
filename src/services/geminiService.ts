@@ -1,30 +1,51 @@
+import { GoogleGenAI, Type } from "@google/genai";
+
+const ai = new GoogleGenAI({ 
+  apiKey: process.env.GEMINI_API_KEY || (import.meta as any).env.VITE_GEMINI_API_KEY || "" 
+});
+
 export interface WahalaContent {
   shortResponse: string;
   script: string;
 }
 
 export const generateWahalaContent = async (complaint: string): Promise<WahalaContent> => {
-  console.log("Gemini Service: Calling backend AI generation...");
+  console.log("Gemini Service: Generating content for complaint using frontend SDK");
   
+  const systemPrompt = `
+    You are the "WAHALASCIENTIST". You turn health complaints into two things: 
+    1. A "shortResponse": Bold, pithy, in Nigerian Pidgin/English mix, speaking truth to power. Start with "Listen up! The WAHALASCIENTIST don arrive." The response MUST be in Pidgin, telling them they will be the first to receive the visual story and that "we dey for them".
+    2. A "script": A gritty 4-panel visual comic script for social media amplification.
+  `;
+
+  const userQuery = `Health Complaint: ${complaint}`;
+
   try {
-    const response = await fetch("/api/generate-wahala", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ complaint }),
+    const response = await ai.models.generateContent({
+      model: "gemini-3-flash-preview",
+      contents: userQuery,
+      config: {
+        systemInstruction: systemPrompt,
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: Type.OBJECT,
+          properties: {
+            shortResponse: { type: Type.STRING },
+            script: { type: Type.STRING }
+          },
+          required: ["shortResponse", "script"]
+        }
+      }
     });
 
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.error || `Server error: ${response.status}`);
-    }
-
-    const data = await response.json();
-    console.log("Gemini Service: AI response received from backend");
-    return data;
-  } catch (error) {
+    const text = response.text;
+    if (!text) throw new Error("No response from Gemini");
+    
+    return JSON.parse(text);
+  } catch (error: any) {
     console.error("Gemini Service Error:", error);
-    throw error;
+    // Extract a cleaner message for the UI
+    const errorMessage = error.message || "Failed to generate AI content";
+    throw new Error(errorMessage);
   }
 };

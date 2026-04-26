@@ -631,9 +631,11 @@ const WahalaLoop = ({ user, setUser }: { user: User | null, setUser: (user: User
       let data;
       try {
         data = await generateWahalaContent(complaint);
-      } catch (aiErr) {
+      } catch (aiErr: any) {
         logWahalaError('ai_generation', aiErr, { complaintLength: complaint.length });
-        throw new Error("AI generation failed. Please check your connection and try again.");
+        setError(`Wahala catch us small: ${aiErr.message || "Something went wrong with the AI"}. Abeg check your internet or your GEMINI_API_KEY. We dey for you!`);
+        setStatus('error');
+        return; 
       }
       console.log("Wahala Loop: AI content generated successfully");
       
